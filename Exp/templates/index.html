@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pixel Expert Resume Analyzer</title>
+
+  <!-- Include Chart.js and jsPDF -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Poppins Font -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    /* Global Reset and Base */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+      /* Pleasant pastel gradient */
+      background: linear-gradient(135deg, #ffecd2, #fcb69f);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+      transition: background 0.3s ease;
+      color: #333;
+    }
+
+    body.dark {
+      background: #2e2e2e;
+      color: #ddd;
+    }
+
+    /* Dark mode toggle positioned top left */
+    .dark-toggle {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      display: flex;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .dark-toggle label {
+      margin-right: 8px;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 30px;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    }
+
+    /* Form Container */
+    form {
+      background: rgba(255, 255, 255, 0.8);
+      width: 100%;
+      max-width: 600px;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      margin-bottom: 40px;
+      text-align: center;
+      transition: background 0.3s ease;
+    }
+
+    body.dark form {
+      background: rgba(50, 50, 50, 0.8);
+    }
+
+    form label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 1.1rem;
+    }
+
+    form input[type='file'] {
+      display: block;
+      width: 80%;
+      margin: 10px auto 20px auto;
+      padding: 10px;
+      border-radius: 6px;
+      border: none;
+      background: #fff;
+      font-size: 0.95rem;
+    }
+
+    form button {
+      background-color: #ff8c00;
+      color: #fff;
+      padding: 12px 30px;
+      border: none;
+      border-radius: 6px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    form button:hover {
+      background-color: #e67e00;
+    }
+
+    /* Progress bar loader */
+    #loader {
+      display: none;
+      width: 80%;
+      max-width: 600px;
+      height: 8px;
+      background: #ddd;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 20px auto;
+    }
+    #loader .bar {
+      width: 0%;
+      height: 100%;
+      background: #4CAF50;
+      animation: load 2s infinite;
+    }
+    @keyframes load {
+      0% {
+        width: 0%;
+      }
+      50% {
+        width: 80%;
+      }
+      100% {
+        width: 0%;
+      }
+    }
+
+    /* Result Container */
+    #result {
+      background: rgba(255, 255, 255, 0.8);
+      width: 100%;
+      max-width: 800px;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      transition: background 0.3s ease;
+      display: none;
+      text-align: center;
+    }
+
+    body.dark #result {
+      background: rgba(50, 50, 50, 0.8);
+    }
+
+    /* Doughnut Chart */
+    #scoreChart {
+      max-width: 300px;
+      margin: 0 auto 20px auto;
+    }
+
+    .report-section {
+      margin-top: 20px;
+      text-align: left;
+    }
+
+    .report-section h3 {
+      color: #00a676;
+      margin-bottom: 5px;
+    }
+
+    .report-section ul {
+      padding-left: 20px;
+    }
+
+    #downloadBtn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #00a676;
+      color: #fff;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    /* Heatmap container and blocks (if needed) */
+    .heatmap-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+      justify-content: center;
+    }
+
+    .heatmap-block {
+      flex: 0 0 100px;
+      text-align: center;
+      padding: 10px;
+      border-radius: 4px;
+      color: #fff;
+      font-weight: bold;
+    }
+
+    /* Media Queries */
+    @media (max-width: 600px) {
+      form, #result {
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      #scoreChart {
+        max-width: 250px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Dark Mode Toggle (top-left) -->
+  <div class="dark-toggle">
+    <label for="darkModeToggle">Dark Mode</label>
+    <input id="darkModeToggle" type="checkbox" />
+  </div>
+
+  <h1>Pixel Expert Resume Analyzer</h1>
+
+  <!-- Upload Form -->
+  <form id="uploadForm" enctype="multipart/form-data">
+    <label>Upload Job Description (.docx or .pdf)</label>
+    <input type="file" name="job_description" accept=".docx,.pdf" required />
+
+    <label>Upload Resume (.docx or .pdf)</label>
+    <input type="file" name="resume" accept=".docx,.pdf" required />
+
+    <button type="submit">Match Now</button>
+  </form>
+
+  <!-- Progress Bar Loader -->
+  <div id="loader">
+    <div class="bar"></div>
+  </div>
+
+  <!-- Results -->
+  <div id="result">
+    <!-- Full Circle Doughnut Chart -->
+    <canvas id="scoreChart"></canvas>
+
+    <!-- Heatmap (optional, remove if you don't need) -->
+    <div class="heatmap-container" id="heatmap"></div>
+
+    <!-- Matched Skills -->
+    <div class="report-section">
+      <h3>Matched Skills</h3>
+      <ul id="matchedSkills"></ul>
+    </div>
+
+    <!-- Lacking Skills -->
+    <div class="report-section">
+      <h3>Lacking Skills</h3>
+      <ul id="lackingSkills"></ul>
+    </div>
+
+    <!-- Summary Report -->
+    <div class="report-section">
+      <h3>Summary Report</h3>
+      <p id="reportText"></p>
+    </div>
+
+    <!-- New sections for detailed analysis -->
+    <div class="report-section">
+      <h3>Reasoning</h3>
+      <p id="fitReasoning"></p>
+    </div>
+
+    <div class="report-section">
+      <h3>Project Relevance</h3>
+      <p id="projectRelevance"></p>
+    </div>
+
+    <button id="downloadBtn">Download Report as PDF</button>
+  </div>
+
+  <script>
+    // Dark mode toggle
+    const darkToggle = document.getElementById('darkModeToggle');
+    darkToggle.addEventListener('change', () => {
+      document.body.classList.toggle('dark', darkToggle.checked);
+    });
+
+    let chart;
+    document.getElementById('uploadForm').onsubmit = async function (e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      const loader = document.getElementById('loader');
+      const resultDiv = document.getElementById('result');
+      const matchedList = document.getElementById('matchedSkills');
+      const lackingList = document.getElementById('lackingSkills');
+      const reportText = document.getElementById('reportText');
+      const fitReasoning = document.getElementById('fitReasoning');
+      const projectRelevance = document.getElementById('projectRelevance');
+      const heatmapContainer = document.getElementById('heatmap');
+
+      // Show progress bar
+      loader.style.display = 'block';
+      resultDiv.style.display = 'none';
+
+      const response = await fetch('/match', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+
+      // Hide progress bar, show results
+      loader.style.display = 'none';
+      resultDiv.style.display = 'block';
+
+      const score = data.score || 0;
+      const matched = data.matched || [];
+      const report = data.report || '';
+
+      // Optional: If you want to display a heatmap
+      heatmapContainer.innerHTML = '';
+      if (data.heatmapData) {
+        data.heatmapData.forEach((item) => {
+          const s = item.score;
+          const red = Math.round(255 - s * 2.55);
+          const green = Math.round(s * 2.55);
+          const color = `rgb(${red}, ${green}, 0)`;
+
+          const block = document.createElement('div');
+          block.className = 'heatmap-block';
+          block.style.backgroundColor = color;
+          block.innerText = `${item.skill}\n${s}%`;
+          heatmapContainer.appendChild(block);
+        });
+      }
+
+      // Build or Update the Doughnut Chart (Full circle)
+      const ctx = document.getElementById('scoreChart').getContext('2d');
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Match', 'Remaining'],
+          datasets: [
+            {
+              data: [score, 100 - score],
+              backgroundColor: ['#4CAF50', '#E0E0E0'],
+              borderWidth: 1
+            }
+          ]
+        },
+        options: {
+          cutout: '60%',
+          rotation: 0,
+          circumference: 360,
+          animation: {
+            animateRotate: true,
+            duration: 1500
+          },
+          plugins: {
+            tooltip: { enabled: false },
+            legend: { display: false },
+            title: {
+              display: true,
+              text: `${score}% Match`,
+              color: document.body.classList.contains('dark') ? '#fff' : '#333',
+              font: { size: 24 }
+            }
+          }
+        }
+      });
+
+      // Fill matched, lacking skills, and report
+      matchedList.innerHTML = matched
+        .map((skill) => `<li>${skill}</li>`)
+        .join('');
+
+      // Try to parse lacking skills from the report (if available)
+      const lackingMatch = report.match(/lack.*?: (.*?)(\\.|$)/i);
+      const lacking = lackingMatch
+        ? lackingMatch[1].split(',').map((s) => s.trim())
+        : [];
+      lackingList.innerHTML = lacking.length
+        ? lacking.map((skill) => `<li>${skill}</li>`).join('')
+        : '<li>None</li>';
+
+      reportText.innerText = report;
+      fitReasoning.innerText = data.fit_reasoning || '';
+      projectRelevance.innerText = data.project_relevance || '';
+    };
+
+    // Download PDF
+    document.getElementById('downloadBtn').onclick = () => {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      const matched = Array.from(
+        document.querySelectorAll('#matchedSkills li')
+      ).map((li) => li.textContent).join(', ');
+      const lacking = Array.from(
+        document.querySelectorAll('#lackingSkills li')
+      ).map((li) => li.textContent).join(', ');
+      const report = document.getElementById('reportText').textContent;
+      const fitReason = document.getElementById('fitReasoning').textContent;
+      const projRel = document.getElementById('projectRelevance').textContent;
+
+      doc.setFont('Poppins', 'normal');
+      doc.setFontSize(16);
+      doc.text('Pixel Expert Resume Analyzer Report', 10, 20);
+
+      doc.setFontSize(12);
+      doc.text(`Matched Skills: ${matched}`, 10, 40);
+      doc.text(`Lacking Skills: ${lacking}`, 10, 50);
+      doc.text('Report Summary:', 10, 70);
+      doc.text(doc.splitTextToSize(report, 180), 10, 80);
+      doc.text('Fit Reasoning:', 10, 110);
+      doc.text(doc.splitTextToSize(fitReason, 180), 10, 120);
+      doc.text('Project Relevance:', 10, 150);
+      doc.text(doc.splitTextToSize(projRel, 180), 10, 160);
+
+      doc.save('match_report.pdf');
+    };
+  </script>
+</body>
+</html>
